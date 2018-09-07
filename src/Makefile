@@ -87,28 +87,51 @@ data: bpe.en c.bpe.en c.bpe.lv
 MARIAN:= "../marian-dev"
 ADAPT:= $(MARIAN)/build/marian-self-adapt
 
-L:= 0.001 0.002
-E:= 1 2
-B:= 1 10
-define make-translate-target
-	lv-$1-$2-$3: bpe.en c.bpe.en c.bpe.lv model.npz vocab.yml
-	  ./$(ADAPT) \
-	  -m model.npz \
-	  -v vocab.yml \
-	  --dim-vocabs 85000 85000 --dim-emb 500 \
-	  --learn-rate $1 --after-epochs $2 --mini-batch $3  \
-	  -t c.bpe.en c.bpe.lv --log $1-$2-$3.log < bpe.en > lv-$1-$2-$3.out
-	all:: 
-  all:: lv-$1-$2-$3
-endef
+L = 0.001 0.002
+E = 1 2
+B = 1 10
+translate: bpe.en c.bpe.en c.bpe.lv model.npz vocab.yml
+	@for l in ${L}; \
+	do \
+		for e in ${E}; \
+		do \
+			for b in ${B}; \
+			do \
+				./$(ADAPT) \
+				-m model.npz \
+				-v vocab.yml -v vocab.yml \
+				--dim-vocabs 85000 85000 --dim-emb 500 \
+				--learn-rate $$l --after-epochs $$e --mini-batch $$b  \
+				-t c.bpe.en c.bpe.lv --log $$l-$$e-$$b.log < bpe.en > lv-$$l-$$e-$$b.out; \
+			done \
+		done \
+	done
 
-#$(foreach element,$(LIST),$(eval $(call make-rambo-target,$(element))))
+# define make-translate
+# 	lv-$1-$2-$3: bpe.en c.bpe.en c.bpe.lv model.npz vocab.yml
+# 	  ./$(ADAPT) \
+# 	  -m model.npz \
+# 	  -v vocab.yml \
+# 	  --dim-vocabs 85000 85000 --dim-emb 500 \
+# 	  --learn-rate $1 --after-epochs $2 --mini-batch $3  \
+# 	  -t c.bpe.en c.bpe.lv --log $1-$2-$3.log < bpe.en > lv-$1-$2-$3.out
+# 	all:: lv-$1-$2-$3
+# endef
 
-lv-$1-$2-$3: bpe.en c.bpe.en c.bpe.lv model.npz vocab.yml
-	  ./$(ADAPT) \
-	  -m model.npz \
-	  -v vocab.yml \
-	  --dim-vocabs 85000 85000 --dim-emb 500 \
-	  --learn-rate $1 --after-epochs $2 --mini-batch $3  \
-	  -t c.bpe.en c.bpe.lv --log $1-$2-$3.log < bpe.en > lv-$1-$2-$3.out
-	all:: 
+#$(foreach le,${L},$(foreach ee,${E},$(foreach be,${B},$(eval $(call make-translate,$(le),$(ee),$(be))))))
+
+#t-targets = $(addprefix $(addprefix $(addprefix lv-,$(L))-,$(E))-,$(B))
+#
+#translate: $(t-targets)
+#	echo "$@ success"
+
+# t-targets = $(addprefix $(addprefix $(addprefix lv-,$(L)),$(E)),$(B))
+# 
+# lv-$1-$2-$3: bpe.en c.bpe.en c.bpe.lv model.npz vocab.yml
+# 	  ./$(ADAPT) \
+# 	  -m model.npz \
+# 	  -v vocab.yml \
+# 	  --dim-vocabs 85000 85000 --dim-emb 500 \
+# 	  --learn-rate $1 --after-epochs $2 --mini-batch $3  \
+# 	  -t c.bpe.en c.bpe.lv --log $1-$2-$3.log < bpe.en > lv-$1-$2-$3.out
+# 	all:: 
