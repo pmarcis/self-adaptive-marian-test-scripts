@@ -1,10 +1,11 @@
 #!/bin/bash
 
 MARIAN=/fs/zisa0/romang/marian/marian-dev/build-selfadapt
-MODELDIR=model.wmt2018
-DATADIR=data.wmt2018
+MODELDIR=model
+DATADIR=data.prep
+DEVICES="1"
 
-WORKDIR=exp.wmt2018.1
+WORKDIR=output
 mkdir -p $WORKDIR
 
 for TESTPREFIX in $(ls data/*.json | sed -e 's|^..../\(.*\).json|\1|'); do
@@ -13,8 +14,8 @@ for TESTPREFIX in $(ls data/*.json | sed -e 's|^..../\(.*\).json|\1|'); do
     echo "Running $prefix"
 
     test -s $prefix.bleu || LC_ALL=C.UTF-8 cat $DATADIR/$TESTPREFIX.bpe.src \
-        | $MARIAN/marian-decoder -c $MODELDIR/decode.ens1.yml --log $prefix.log \
-        -w 3000 -d 0 1 --mini-batch 32 --maxi-batch 10 \
+        | $MARIAN/marian-decoder -c $MODELDIR/decode.yml --log $prefix.log \
+            -w 3000 -d 0 1 --mini-batch 32 --maxi-batch 10 \
         | tee $prefix.bpe.out \
         | sed 's/\@\@ //g' \
         | ../tools/moses-scripts/scripts/recaser/detruecase.perl \
@@ -32,13 +33,14 @@ for TESTPREFIX in $(ls data/*.json | sed -e 's|^..../\(.*\).json|\1|'); do
                 # --mini-batch
                 for B in 1; do
 
-                    prefix=$WORKDIR/$TESTPREFIX.u${U}.e{$E}.b${B}.l${L}
+                    prefix=$WORKDIR/$TESTPREFIX.u${U}.e${E}.b${B}.l${L}
                     echo "Running $prefix"
 
                     test -s $prefix.bleu || LC_ALL=C.UTF-8 cat $DATADIR/$TESTPREFIX.bpe.src \
-                        | $MARIAN/marian-self-adapt -c $MODELDIR/decode.ens1.yml -t $DATADIR/$TESTPREFIX.bpe.context.{src,trg} \
-                        -w 3000 -d 0 1 --mini-batch 1 \
-                        --after-batches $U --after-epochs 1 --learn-rate $L --mini-batch 1 --log $prefix.log \
+                        | $MARIAN/marian-self-adapt -c $MODELDIR/selfadapt.yml \
+                            -w 3000 -d $DEVICES --mini-batch 1 \
+                            -t $DATADIR/$TESTPREFIX.bpe.context.{src,trg} \
+                            --after-batches $U --after-epochs 1 --learn-rate $L --log $prefix.log \
                         | tee $prefix.bpe.out \
                         | sed 's/\@\@ //g' \
                         | ../tools/moses-scripts/scripts/recaser/detruecase.perl \
@@ -46,8 +48,13 @@ for TESTPREFIX in $(ls data/*.json | sed -e 's|^..../\(.*\).json|\1|'); do
                         | tee $prefix.out \
                         | ../tools/sacreBLEU/sacrebleu.py $DATADIR/$TESTPREFIX.trg \
                         > $prefix.bleu
+
+                    echo "Remove this exit!!!"
+                    exit 1
+
                 done
             done
         done
     done
+
 done

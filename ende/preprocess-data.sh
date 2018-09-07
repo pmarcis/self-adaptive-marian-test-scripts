@@ -1,8 +1,8 @@
 #!/bin/bash
 
 TOOLS=../tools
-MODELDIR=model.wmt2018
-WORKDIR=data.wmt2018
+MODELDIR=model
+WORKDIR=data.prep
 
 rm -rf $WORKDIR
 mkdir -p $WORKDIR
