@@ -25,21 +25,21 @@ for TESTPREFIX in $(ls en-lv-sa-data-prep/*.bpe.context.src | sed -e 's|^en-lv-s
         > $prefix.bleu
     
     # --after-batches
-    for U in 1 10; do
+    for U in 1 10 15; do
         # --after epochs
-        for E in 1; do
+        for E in 1 5; do
             # --learn-rate
             for L in 0.1 0.001; do
                 # --mini-batch
-                for B in 1; do
+                for B in 1 5; do
 
                     prefix=$WORKDIR/$TESTPREFIX.u${U}.e{$E}.b${B}.l${L}
                     echo "Running $prefix"
 
                     test -s $prefix.bleu || LC_ALL=C.UTF-8 cat $DATADIR/$TESTPREFIX.bpe.src \
-                        | $MARIAN/marian-self-adapt -c $MODELDIR/model.npz.decoder.yml -t $DATADIR/$TESTPREFIX.bpe.context.{src,trg} \
-                        -w 3000 -d 0 \
-                        --after-batches $U --after-epochs 1 --learn-rate $L --mini-batch $B --log $prefix.log \
+                        | $MARIAN/marian-self-adapt -c $MODELDIR/model.npz.yml -t $DATADIR/$TESTPREFIX.bpe.context.{src,trg} \
+                        -w 5000 -d 0 \
+                        --after-batches $U --after-epochs $E --learn-rate $L --mini-batch $B --log $prefix.log \
                         | tee $prefix.bpe.out \
                         | sed 's/\@\@ //g' \
                         | perl $mosesdecoder/scripts/recaser/detruecase.perl \
